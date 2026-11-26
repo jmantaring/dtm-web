@@ -29,6 +29,45 @@ Open the local URL that Vite prints (usually http://localhost:5173).
 | `npm run deploy` | Deploys to Cloudflare Workers. |
 | `npm run cf-typegen` | Generates TypeScript types for the Worker bindings. |
 
+## API (mocked)
+
+The backend runs in the same Cloudflare Worker as the site, as route handlers under `app/api/*`.
+Responses are mocked for now: nothing is stored or emailed. Look for `TODO(backend)` in the route files.
+
+| Method | Path | Body | Used by |
+| --- | --- | --- | --- |
+| `POST` | `/api/contact` | `{ name, email, subject?, message }` | Contact form (`/contact`) |
+| `POST` | `/api/waitlist` | `{ email }` | Waitlist form (`/`) |
+
+- Success: `201 { data: { ... } }`
+- Error: `{ error: { code, message, fieldErrors? } }`
+- Each request waits about 800 ms so loading states are visible.
+
+### Test emails
+
+Use these emails in the forms or with curl to trigger each response:
+
+| Email | Endpoint | Response |
+| --- | --- | --- |
+| Any valid email, e.g. `jane@company.com` | both | `201` success |
+| Ending in `@fail.test`, e.g. `jane@fail.test` | both | `500 INTERNAL_ERROR`: the form shows an error alert and a "Try again" button |
+| Ending in `@exists.test`, e.g. `jane@exists.test` | `/api/waitlist` | `409 ALREADY_ON_WAITLIST`: the form shows "You're already on the list" |
+| Invalid email or missing fields (curl only; the forms block these) | both | `400 VALIDATION_ERROR` with `fieldErrors` |
+| A body that isn't JSON (curl only) | both | `400 INVALID_JSON` |
+
+```bash
+curl -i -X POST http://localhost:5173/api/waitlist \
+  -H 'content-type: application/json' -d '{"email":"jane@exists.test"}'
+```
+
+### How the pieces fit
+
+- `lib/validation/*`: Zod schemas shared by the forms (React Hook Form + `zodResolver`) and the API routes.
+- `lib/api/server.ts`: route helpers (`parseBody`, `jsonError`).
+- `lib/api/client.ts`: `apiPost`, which throws `ApiError` for any non-2xx response.
+- `hooks/use-*-mutation.ts`: TanStack Query mutations used by the forms.
+- `lib/query-client.ts` + `components/providers/query-provider.tsx`: the QueryClient, set up as in the [TanStack Advanced SSR guide](https://tanstack.com/query/latest/docs/framework/react/guides/advanced-ssr). React Query Devtools are shown in dev only.
+
 ## Deploying to Cloudflare
 
 The project is already configured for Cloudflare Workers:
@@ -60,7 +99,9 @@ app/
     about/page.tsx      /about
     contact/page.tsx    /contact
     license/page.tsx    /license
-  api/                  Route handlers
+  api/                  Route handlers (mocked backend, see "API (mocked)")
+    contact/route.ts    POST /api/contact
+    waitlist/route.ts   POST /api/waitlist
 components/
   ui/                   shadcn/ui components, managed by the CLI (avoid hand-editing)
   layout/               Site chrome: header, mobile nav, theme toggle, footer
@@ -68,8 +109,11 @@ components/
   providers/            Client-side context providers
 config/
   site.ts               Site name, description, header and footer links
-hooks/                  Custom React hooks
+hooks/                  Custom React hooks (incl. TanStack Query mutations)
 lib/                    Utilities (e.g. `cn`)
+  api/                  API types, server helpers, fetch client
+  validation/           Zod schemas shared by client and server
+  query-client.ts       TanStack QueryClient factory
 ```
 
 - To add a page, create `app/(marketing)/<name>/page.tsx`. To add it to the header, add an entry to `mainNav` in `config/site.ts`.

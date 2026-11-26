@@ -1,126 +1,74 @@
 "use client"
 
-import { useEffect, useId, useRef, useState } from "react"
+import { useEffect, useId, useRef } from "react"
+import { Controller, useForm, useWatch } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
 import { CheckCircleIcon, CircleNotchIcon, WarningCircleIcon } from "@phosphor-icons/react"
 
 import { Button } from "@/components/ui/button"
+import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { MESSAGE_MAX_LENGTH, submitContactMessage, type ContactMessage } from "@/lib/contact"
+import { useContactMutation } from "@/hooks/use-contact-mutation"
+import { applyApiError } from "@/lib/api/form-errors"
+import {
+  MESSAGE_MAX_LENGTH,
+  SUBJECT_MAX_LENGTH,
+  contactSchema,
+  type ContactInput,
+  type ContactMessage,
+} from "@/lib/validation/contact"
 
-type FieldName = keyof ContactMessage
-type Errors = Partial<Record<FieldName, string>>
-type Status = "idle" | "submitting" | "success" | "error"
-
-const EMPTY: ContactMessage = { name: "", email: "", subject: "", message: "" }
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-const FIELD_ORDER: FieldName[] = ["name", "email", "subject", "message"]
-
-function validateField(field: FieldName, value: string): string | undefined {
-  const v = value.trim()
-  switch (field) {
-    case "name":
-      return v ? undefined : "Please enter your name."
-    case "email":
-      if (!v) return "Please enter your email address."
-      return EMAIL_PATTERN.test(v) ? undefined : "Please enter a valid email, like name@example.com."
-    case "message":
-      if (!v) return "Please enter a message."
-      if (v.length < 10) return "Please add a little more detail (at least 10 characters)."
-      return value.length > MESSAGE_MAX_LENGTH
-        ? `Please keep your message under ${MESSAGE_MAX_LENGTH} characters.`
-        : undefined
-    default:
-      return undefined
-  }
-}
-
-function validateAll(values: ContactMessage): Errors {
-  const errors: Errors = {}
-  for (const field of FIELD_ORDER) {
-    const error = validateField(field, values[field])
-    if (error) errors[field] = error
-  }
-  return errors
-}
+const DEFAULT_VALUES: ContactInput = { name: "", email: "", subject: "", message: "" }
+const FIELDS = ["name", "email", "subject", "message"] as const
 
 export function ContactForm() {
   const id = useId()
-  const [values, setValues] = useState<ContactMessage>(EMPTY)
-  const [errors, setErrors] = useState<Errors>({})
-  const [touched, setTouched] = useState<Partial<Record<FieldName, boolean>>>({})
-  const [status, setStatus] = useState<Status>("idle")
-  const formRef = useRef<HTMLFormElement>(null)
   const successRef = useRef<HTMLHeadingElement>(null)
   const errorRef = useRef<HTMLDivElement>(null)
 
+  const form = useForm<ContactInput, unknown, ContactMessage>({
+    resolver: zodResolver(contactSchema),
+    // Validate a field on first blur, then on every change: people aren't
+    // scolded while still typing for the first time.
+    mode: "onTouched",
+    defaultValues: DEFAULT_VALUES,
+  })
+  const mutation = useContactMutation()
+
+  const serverError = form.formState.errors.root?.serverError
+  const messageLength = useWatch({ control: form.control, name: "message" })?.length ?? 0
+  const pending = mutation.isPending
+
   useEffect(() => {
-    if (status === "success") successRef.current?.focus()
-    if (status === "error") errorRef.current?.focus()
-  }, [status])
+    if (mutation.isSuccess) successRef.current?.focus()
+  }, [mutation.isSuccess])
 
-  const fieldId = (field: FieldName) => `${id}-${field}`
-  const errorId = (field: FieldName) => `${id}-${field}-error`
+  useEffect(() => {
+    if (serverError) errorRef.current?.focus()
+  }, [serverError])
 
-  function handleChange(field: FieldName, value: string) {
-    setValues((prev) => ({ ...prev, [field]: value }))
-    // Validate live only once a field has been visited, so people
-    // aren't scolded while still typing for the first time.
-    if (touched[field]) {
-      setErrors((prev) => ({ ...prev, [field]: validateField(field, value) }))
-    }
-    if (status === "error") setStatus("idle")
-  }
-
-  function handleBlur(field: FieldName) {
-    setTouched((prev) => ({ ...prev, [field]: true }))
-    setErrors((prev) => ({ ...prev, [field]: validateField(field, values[field]) }))
-  }
-
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    if (status === "submitting") return
-
-    const nextErrors = validateAll(values)
-    setErrors(nextErrors)
-    setTouched({ name: true, email: true, subject: true, message: true })
-
-    const firstInvalid = FIELD_ORDER.find((field) => nextErrors[field])
-    if (firstInvalid) {
-      formRef.current?.querySelector<HTMLElement>(`#${CSS.escape(fieldId(firstInvalid))}`)?.focus()
-      return
-    }
-
-    setStatus("submitting")
-    try {
-      await submitContactMessage({
-        name: values.name.trim(),
-        email: values.email.trim(),
-        subject: values.subject.trim(),
-        message: values.message.trim(),
-      })
-      setStatus("success")
-    } catch {
-      setStatus("error")
-    }
-  }
+  const onSubmit = form.handleSubmit((values) => {
+    mutation.mutate(values, {
+      onError: (error) => applyApiError(error, form.setError, FIELDS),
+    })
+  })
 
   function reset() {
-    setValues(EMPTY)
-    setErrors({})
-    setTouched({})
-    setStatus("idle")
+    form.reset(DEFAULT_VALUES)
+    mutation.reset()
   }
 
-  if (status === "success") {
+  if (mutation.isSuccess) {
+    const sent = mutation.variables
     return (
       <div role="status" className="flex flex-col items-start gap-4 border p-6 sm:p-8">
         <CheckCircleIcon className="size-8" weight="fill" aria-hidden />
         <h2 ref={successRef} tabIndex={-1} className="text-xl font-semibold tracking-tight outline-none">
-          Thanks, {values.name.trim().split(" ")[0]}. Your message is on its way.
+          Thanks, {sent.name.split(" ")[0]}. Your message is on its way.
         </h2>
         <p className="text-sm text-muted-foreground">
-          We&apos;ll reply to <span className="font-medium text-foreground">{values.email.trim()}</span> as
+          We&apos;ll reply to <span className="font-medium text-foreground">{sent.email}</span> as
           soon as we can.
         </p>
         <Button variant="outline" size="lg" onClick={reset}>
@@ -130,95 +78,131 @@ export function ContactForm() {
     )
   }
 
-  const submitting = status === "submitting"
-  const messageLength = values.message.length
-
-  const fieldProps = (field: FieldName, required: boolean) => ({
-    id: fieldId(field),
-    name: field,
-    value: values[field],
-    required,
-    disabled: submitting,
-    "aria-required": required || undefined,
-    "aria-invalid": errors[field] ? true : undefined,
-    "aria-describedby": errors[field] ? errorId(field) : undefined,
-    onBlur: () => handleBlur(field),
-  })
+  const errorId = (name: string) => `${id}-${name}-error`
 
   return (
-    <form
-      ref={formRef}
-      noValidate
-      onSubmit={handleSubmit}
-      aria-busy={submitting}
-      className="flex flex-col gap-5"
-    >
+    <form noValidate onSubmit={onSubmit} aria-busy={pending} className="flex flex-col gap-5">
       <p className="text-xs text-muted-foreground">
         Fields marked with <span aria-hidden className="text-destructive">*</span>
         <span className="sr-only">an asterisk</span> are required.
       </p>
 
-      <div className="grid gap-5 sm:grid-cols-2">
-        <Field label="Name" htmlFor={fieldId("name")} required error={errors.name} errorId={errorId("name")}>
-          <Input
-            {...fieldProps("name", true)}
-            autoComplete="name"
-            placeholder="Jane Doe"
-            className="h-10 text-sm md:text-sm"
-            onChange={(e) => handleChange("name", e.target.value)}
+      <FieldGroup>
+        <div className="grid gap-5 sm:grid-cols-2">
+          <Controller
+            name="name"
+            control={form.control}
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid}>
+                <FieldLabel htmlFor={`${id}-name`} className="font-medium">
+                  Name
+                  <RequiredMark />
+                </FieldLabel>
+                <Input
+                  {...field}
+                  id={`${id}-name`}
+                  autoComplete="name"
+                  placeholder="Jane Doe"
+                  readOnly={pending}
+                  aria-required
+                  aria-invalid={fieldState.invalid || undefined}
+                  aria-describedby={fieldState.invalid ? errorId("name") : undefined}
+                  className="h-10 text-sm md:text-sm"
+                />
+                <InlineError id={errorId("name")} message={fieldState.error?.message} />
+              </Field>
+            )}
           />
-        </Field>
 
-        <Field label="Email" htmlFor={fieldId("email")} required error={errors.email} errorId={errorId("email")}>
-          <Input
-            {...fieldProps("email", true)}
-            type="email"
-            inputMode="email"
-            autoComplete="email"
-            spellCheck={false}
-            placeholder="jane@company.com"
-            className="h-10 text-sm md:text-sm"
-            onChange={(e) => handleChange("email", e.target.value)}
+          <Controller
+            name="email"
+            control={form.control}
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid}>
+                <FieldLabel htmlFor={`${id}-email`} className="font-medium">
+                  Email
+                  <RequiredMark />
+                </FieldLabel>
+                <Input
+                  {...field}
+                  id={`${id}-email`}
+                  type="email"
+                  inputMode="email"
+                  autoComplete="email"
+                  spellCheck={false}
+                  placeholder="jane@company.com"
+                  readOnly={pending}
+                  aria-required
+                  aria-invalid={fieldState.invalid || undefined}
+                  aria-describedby={fieldState.invalid ? errorId("email") : undefined}
+                  className="h-10 text-sm md:text-sm"
+                />
+                <InlineError id={errorId("email")} message={fieldState.error?.message} />
+              </Field>
+            )}
           />
-        </Field>
-      </div>
+        </div>
 
-      <Field label="Subject" htmlFor={fieldId("subject")} optional error={errors.subject} errorId={errorId("subject")}>
-        <Input
-          {...fieldProps("subject", false)}
-          maxLength={120}
-          placeholder="What's this about?"
-          className="h-10 text-sm md:text-sm"
-          onChange={(e) => handleChange("subject", e.target.value)}
+        <Controller
+          name="subject"
+          control={form.control}
+          render={({ field, fieldState }) => (
+            <Field data-invalid={fieldState.invalid}>
+              <FieldLabel htmlFor={`${id}-subject`} className="font-medium">
+                Subject
+                <span className="font-normal text-muted-foreground">(optional)</span>
+              </FieldLabel>
+              <Input
+                {...field}
+                id={`${id}-subject`}
+                maxLength={SUBJECT_MAX_LENGTH}
+                placeholder="What's this about?"
+                readOnly={pending}
+                aria-invalid={fieldState.invalid || undefined}
+                aria-describedby={fieldState.invalid ? errorId("subject") : undefined}
+                className="h-10 text-sm md:text-sm"
+              />
+              <InlineError id={errorId("subject")} message={fieldState.error?.message} />
+            </Field>
+          )}
         />
-      </Field>
 
-      <Field
-        label="Message"
-        htmlFor={fieldId("message")}
-        required
-        error={errors.message}
-        errorId={errorId("message")}
-        aside={
-          <span
-            className={
-              messageLength > MESSAGE_MAX_LENGTH ? "text-destructive" : "text-muted-foreground"
-            }
-          >
-            {messageLength}/{MESSAGE_MAX_LENGTH}
-          </span>
-        }
-      >
-        <Textarea
-          {...fieldProps("message", true)}
-          rows={6}
-          placeholder="Tell us how we can help."
-          className="min-h-36 text-sm"
-          onChange={(e) => handleChange("message", e.target.value)}
+        <Controller
+          name="message"
+          control={form.control}
+          render={({ field, fieldState }) => (
+            <Field data-invalid={fieldState.invalid}>
+              <div className="flex items-baseline justify-between gap-2 text-xs">
+                <FieldLabel htmlFor={`${id}-message`} className="font-medium">
+                  Message
+                  <RequiredMark />
+                </FieldLabel>
+                <span
+                  className={
+                    messageLength > MESSAGE_MAX_LENGTH ? "text-destructive" : "text-muted-foreground"
+                  }
+                >
+                  {messageLength}/{MESSAGE_MAX_LENGTH}
+                </span>
+              </div>
+              <Textarea
+                {...field}
+                id={`${id}-message`}
+                rows={6}
+                placeholder="Tell us how we can help."
+                readOnly={pending}
+                aria-required
+                aria-invalid={fieldState.invalid || undefined}
+                aria-describedby={fieldState.invalid ? errorId("message") : undefined}
+                className="min-h-36 text-sm"
+              />
+              <InlineError id={errorId("message")} message={fieldState.error?.message} />
+            </Field>
+          )}
         />
-      </Field>
+      </FieldGroup>
 
-      {status === "error" && (
+      {serverError && (
         <div
           ref={errorRef}
           tabIndex={-1}
@@ -229,78 +213,47 @@ export function ContactForm() {
           <div className="flex flex-col gap-1">
             <p className="font-semibold">We couldn&apos;t send your message.</p>
             <p>
-              Please check your connection and try again. Your message hasn&apos;t been lost.
+              {serverError.message} Your message hasn&apos;t been lost, so you can try again.
             </p>
           </div>
         </div>
       )}
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <Button
-          type="submit"
-          size="lg"
-          disabled={submitting}
-          className="h-10 px-6 uppercase sm:w-auto"
-        >
-          {submitting ? (
+        <Button type="submit" size="lg" disabled={pending} className="h-10 px-6 uppercase sm:w-auto">
+          {pending ? (
             <>
               <CircleNotchIcon className="animate-spin" aria-hidden />
               Sending…
             </>
-          ) : status === "error" ? (
+          ) : serverError ? (
             "Try again"
           ) : (
             "Send message"
           )}
         </Button>
         <span aria-live="polite" className="sr-only">
-          {submitting ? "Sending your message" : ""}
+          {pending ? "Sending your message" : ""}
         </span>
       </div>
     </form>
   )
 }
 
-function Field({
-  label,
-  htmlFor,
-  required,
-  optional,
-  error,
-  errorId,
-  aside,
-  children,
-}: {
-  label: string
-  htmlFor: string
-  required?: boolean
-  optional?: boolean
-  error?: string
-  errorId: string
-  aside?: React.ReactNode
-  children: React.ReactNode
-}) {
+function RequiredMark() {
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex items-baseline justify-between gap-2 text-xs">
-        <label htmlFor={htmlFor} className="font-medium">
-          {label}
-          {required && (
-            <span aria-hidden className="ml-0.5 text-destructive">
-              *
-            </span>
-          )}
-          {optional && <span className="ml-1 font-normal text-muted-foreground">(optional)</span>}
-        </label>
-        {aside}
-      </div>
-      {children}
-      {error && (
-        <p id={errorId} className="flex items-center gap-1.5 text-xs text-destructive">
-          <WarningCircleIcon className="size-3.5 shrink-0" aria-hidden />
-          {error}
-        </p>
-      )}
-    </div>
+    <span aria-hidden className="-ml-1.5 text-destructive">
+      *
+    </span>
+  )
+}
+
+function InlineError({ id, message }: { id: string; message?: string }) {
+  if (!message) return null
+  return (
+    <FieldError id={id} className="flex items-center gap-1.5">
+      <WarningCircleIcon className="size-3.5 shrink-0" aria-hidden />
+      {message}
+    </FieldError>
   )
 }

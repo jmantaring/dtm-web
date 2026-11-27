@@ -91,6 +91,7 @@ We follow the Next.js "project files outside of `app`" convention. `app/` only h
 ```
 app/
   layout.tsx            Root <html>/<body>, font, ThemeProvider, metadata
+  not-found.tsx         Custom 404 (wrapped in SiteShell, returns a 404 status)
   globals.css           Theme tokens (CSS variables): the single source of colours
   (marketing)/          Route group: shares the header + footer, no effect on URLs
     layout.tsx
@@ -98,13 +99,14 @@ app/
     roadmap/page.tsx    /roadmap
     about/page.tsx      /about
     contact/page.tsx    /contact
-    license/page.tsx    /license
+    license/page.tsx    /license (Website Usage License)
   api/                  Route handlers (mocked backend, see "API (mocked)")
     contact/route.ts    POST /api/contact
     waitlist/route.ts   POST /api/waitlist
 components/
   ui/                   shadcn/ui components, managed by the CLI (avoid hand-editing)
-  layout/               Site chrome: header, mobile nav, theme toggle, footer
+  layout/               Site chrome: SiteShell, header, mobile nav, theme toggle, footer
+  legal/                Legal-page helpers (e.g. sticky table of contents)
   marketing/            Components used by marketing pages
   providers/            Client-side context providers
 config/

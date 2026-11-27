@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils"
 import { siteConfig } from "@/config/site"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
+import { Logo } from "@/components/brand/logo"
 
 export function MobileNav() {
   const [open, setOpen] = useState(false)
@@ -23,7 +24,10 @@ export function MobileNav() {
       </SheetTrigger>
       <SheetContent side="right">
         <SheetHeader>
-          <SheetTitle>{siteConfig.name}</SheetTitle>
+          <SheetTitle>
+            <Logo height={28} />
+            <span className="sr-only">{siteConfig.name}</span>
+          </SheetTitle>
         </SheetHeader>
         <nav className="flex flex-col px-2">
           {siteConfig.mainNav.map((item) => (

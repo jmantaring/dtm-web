@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/navigation-menu"
 import { MobileNav } from "@/components/layout/mobile-nav"
 import { ModeToggle } from "@/components/layout/mode-toggle"
+import { Logo } from "@/components/brand/logo"
 
 export function SiteHeader() {
   const pathname = usePathname()
@@ -33,8 +34,8 @@ export function SiteHeader() {
           scrolled ? "h-14" : "h-16"
         )}
       >
-        <Link href="/" className="text-sm font-semibold tracking-tight">
-          {siteConfig.name}
+        <Link href="/" aria-label={`${siteConfig.name} home`} className="rounded-md">
+          <Logo height={scrolled ? 30 : 36} priority />
         </Link>
 
         <div className="flex items-center gap-1">

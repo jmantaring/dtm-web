@@ -75,14 +75,43 @@ The project is already configured for Cloudflare Workers:
 - `vite.config.ts` wires up `vinext` and `@cloudflare/vite-plugin`.
 - `cloudflare.config.ts` defines the Worker name (`dtm-web`), compatibility date/flags and bindings (`ASSETS`, `IMAGES`).
 
-To deploy:
+### Deploying to production
+
+Run from `main` only. It deploys your working tree to the production Worker.
 
 ```bash
 npm run preview   # optional: test the production build locally first
 npm run deploy
 ```
 
-The first deploy asks you to sign in to your Cloudflare account. Keep to standard App Router features (Server/Client Components, route handlers, `next/link`, `next/font`) so the app stays Worker-compatible. Avoid Node-only APIs such as `fs` in request code.
+The first deploy asks you to sign in to Cloudflare. Keep to standard App Router features (Server/Client Components, route handlers, `next/link`, `next/font`) so the app stays Worker-compatible. Avoid Node-only APIs such as `fs` in request code.
+
+### Deploying a preview
+
+Deploys the current branch as a [Worker Preview](https://developers.cloudflare.com/workers/previews/) with its own URL, without touching production. You need access to the Cloudflare account that owns `dtm-web`.
+
+```bash
+npx vinext-cloudflare previews deploy --preview-name <preview-name>
+```
+
+The preview is available at:
+
+```
+https://<preview-name>-dtm-web.jeffchung-c0d.workers.dev
+```
+
+For example, `--preview-name develop` deploys to `https://develop-dtm-web.jeffchung-c0d.workers.dev`. Redeploying with the same name updates the same URL.
+
+- `<preview-name>` defaults to the Git branch name. Set it explicitly for branches with a `/`, and use only lowercase letters, numbers and dashes.
+- Uncommitted changes are included in the build.
+- Preview URLs are public. Anyone with the link can open them.
+- Don't use `npm run deploy -- --preview`. It deploys to production.
+
+To delete a preview:
+
+```bash
+npx cf previews delete <preview-name> --worker dtm-web
+```
 
 ## Project structure
 

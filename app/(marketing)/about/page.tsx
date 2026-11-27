@@ -1,224 +1,159 @@
 import type { Metadata } from "next"
-import Link from "next/link"
 import {
-  ArrowRightIcon,
-  CompassIcon,
-  HandshakeIcon,
-  RocketLaunchIcon,
-  UsersThreeIcon,
+  ChartLineUpIcon,
+  ChatsCircleIcon,
+  CodeIcon,
+  FunnelIcon,
 } from "@phosphor-icons/react/ssr"
 
 import { siteConfig } from "@/config/site"
 import { Badge } from "@/components/ui/badge"
-import { buttonVariants } from "@/components/ui/button"
 
 export const metadata: Metadata = {
   title: "About",
   description:
-    "Digital Think Media has built digital products since 2008, starting with IntelliReview. Meet the company, the story, and the founder, Jeff Chung.",
+    "Digital Think Media designs, builds, and grows digital products that help people decide with confidence. See what we do and what we've built, starting with IntelliReview.",
+  alternates: { canonical: "/about" },
 }
 
-const facts = [
-  { label: "Founded", value: "2008" },
-  { label: "Founder", value: "Jeff Chung" },
-  { label: "First product", value: "IntelliReview" },
-]
-
-const milestones = [
+const capabilities = [
   {
-    year: "2008",
-    title: "Digital Think Media is founded",
-    body: "Jeff Chung starts the company with one goal: use technology to make everyday decisions simpler for people.",
+    icon: CodeIcon,
+    title: "Product design & engineering",
+    body: "We take digital products from idea to launch and keep running them, building everything in-house.",
   },
   {
-    year: "2008",
-    title: "IntelliReview launches",
-    body: "Our first website ranks products by how many happy customers they have, not just by star rating, so shoppers can see the best and skip the rest.",
+    icon: FunnelIcon,
+    title: "Data-driven ranking & analysis",
+    body: "We turn large volumes of messy signals, like thousands of customer reviews, into clear, ranked answers.",
   },
   {
-    year: "Since",
-    title: "Guiding shoppers across dozens of categories",
-    body: "From strollers and blenders to air purifiers and treadmills, IntelliReview's buying guides helped people cut through thousands of reviews in minutes.",
+    icon: ChartLineUpIcon,
+    title: "Testing-led growth",
+    body: "Search visibility, conversion, and retention, improved through steady experiments rather than guesswork.",
   },
   {
-    year: "Next",
-    title: "A new generation of products",
-    body: "We're taking what we learned and building new digital products for businesses. See what's coming on our roadmap.",
+    icon: ChatsCircleIcon,
+    title: "Built around user feedback",
+    body: "We design for the people who use our products, and we let their behavior and feedback decide what ships next.",
   },
 ]
 
-const values = [
+// The outcome lives in the "What we've built" section below, so the case study
+// stops at the approach instead of repeating those numbers.
+const caseStudy = [
   {
-    icon: UsersThreeIcon,
-    title: "Trust the crowd, not the outlier",
-    body: "One five-star review proves little. Hundreds of happy customers prove a lot. We build on signals that hold up at scale.",
+    label: "The problem",
+    body: "Shoppers faced thousands of products and reviews. Sorting by average rating surfaced five-star items with only one or two reviews, which told them almost nothing.",
   },
   {
-    icon: CompassIcon,
-    title: "Cut through the noise",
-    body: "People don't have time to read 639 reviews. Our job is to turn too many choices into a few clear ones.",
+    label: "Our approach",
+    body: "We treated every positive review as a vote for a product and every negative one as a vote against it, weighed them over time, and used semantic analysis to pull out what customers loved and disliked.",
+  },
+]
+
+const results = [
+  {
+    value: "40+",
+    label: "Buying guides",
+    body: "From strollers and blenders to air purifiers and treadmills, each one ranked by real customer sentiment.",
   },
   {
-    icon: HandshakeIcon,
-    title: "Stay independent",
-    body: "IntelliReview never took payment or free samples from manufacturers, and we were upfront about how we earned. That honesty is still how we work.",
+    value: "Thousands",
+    label: "Shoppers a day",
+    body: "People came to our sites daily to skip the clutter and start with the products others actually loved.",
   },
   {
-    icon: RocketLaunchIcon,
-    title: "Never finished",
-    body: "Every product we ship is a starting point. We keep measuring, tuning, and improving long after launch.",
+    value: "5 years",
+    label: "Of testing and feedback",
+    body: "We kept improving our sites long after launch, guided by experiments and what our visitors told us.",
   },
 ]
 
 export default function AboutPage() {
   return (
     <>
-      {/* Hero: who we are, in one glance */}
+      {/* Hero */}
       <section className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 pt-16 pb-12 sm:px-6 sm:pt-24">
-        <Badge variant="outline" className="h-6 px-3 uppercase">
+        <Badge variant="outline" className="h-6 w-fit px-3 uppercase">
           About us
         </Badge>
         <h1 className="max-w-3xl text-4xl font-semibold tracking-tight text-balance sm:text-5xl">
-          We build digital products that help people make better decisions.
+          We turn too many choices into a few clear ones.
         </h1>
         <p className="max-w-2xl text-sm text-balance text-muted-foreground sm:text-base">
-          {siteConfig.name} has been building on the web since 2008. It started with one question
-          from a new parent: how do you find the best product when there are thousands of choices
-          and reviews you can&apos;t fully trust?
+          {siteConfig.name} designs, builds, and grows digital products that help people cut
+          through the noise and decide with confidence.
         </p>
-        <dl className="mt-4 grid max-w-2xl grid-cols-1 border sm:grid-cols-3">
-          {facts.map((fact) => (
-            <div
-              key={fact.label}
-              className="flex flex-col gap-1 border-b p-4 last:border-b-0 sm:border-r sm:border-b-0 sm:last:border-r-0"
-            >
-              <dt className="text-xs uppercase text-muted-foreground">{fact.label}</dt>
-              <dd className="text-lg font-semibold">{fact.value}</dd>
-            </div>
-          ))}
-        </dl>
       </section>
 
-      {/* Origin story */}
-      <section className="border-t">
-        <div className="mx-auto grid w-full max-w-6xl gap-8 px-4 py-16 sm:px-6 md:grid-cols-[1fr_2fr] md:gap-16">
-          <div className="flex flex-col gap-2">
-            <p className="text-xs uppercase text-muted-foreground">Our story</p>
-            <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">It started with a baby bathtub.</h2>
-          </div>
-          <div className="flex max-w-2xl flex-col gap-4 text-sm leading-relaxed text-muted-foreground sm:text-base">
-            <p>
-              When Jeff Chung&apos;s daughter was born, he wanted to buy her the very best. But
-              sorting online stores by average rating kept surfacing five-star products with only one
-              or two reviews. Could a handful of opinions really be trusted?
-            </p>
-            <p>
-              Then, while shopping for a baby bathtub, he noticed something. A few products held a
-              4 or 4.5 star rating even after <em>hundreds</em> of reviews from very different
-              people. They had stood the test of time. Those, he realized, were the products truly
-              worth recommending.
-            </p>
-            <p>
-              That insight became <strong className="text-foreground">IntelliReview</strong>, the
-              first website from {siteConfig.name}. Its idea was simple:{" "}
-              <strong className="text-foreground">
-                high rating + high number of reviews = best products
-              </strong>
-              . It counted positive reviews as happy customers, weighed them against unhappy ones
-              and how long a product had been on the market, and used semantic analysis to surface
-              what people actually loved and what they complained about.
-            </p>
-            <p>
-              The result helped parents and shoppers from all walks of life skip the clutter and go
-              straight to the best of the best.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* Timeline */}
-      <section className="border-t bg-muted/40">
-        <div className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-4 py-16 sm:px-6">
-          <div className="flex flex-col gap-2">
-            <p className="text-xs uppercase text-muted-foreground">Our journey</p>
-            <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">From one website to what&apos;s next</h2>
-          </div>
-          <ol className="grid gap-px border bg-border sm:grid-cols-2 lg:grid-cols-4">
-            {milestones.map((m) => (
-              <li key={m.title} className="flex flex-col gap-3 bg-background p-6">
-                <span className="text-xs font-semibold uppercase text-muted-foreground">{m.year}</span>
-                <h3 className="font-semibold">{m.title}</h3>
-                <p className="text-sm text-muted-foreground">{m.body}</p>
-              </li>
-            ))}
-          </ol>
-        </div>
-      </section>
-
-      {/* Values */}
+      {/* What we do */}
       <section className="border-t">
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-4 py-16 sm:px-6">
           <div className="flex max-w-2xl flex-col gap-2">
-            <p className="text-xs uppercase text-muted-foreground">What we believe</p>
-            <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">The principles we&apos;ve kept since day one</h2>
+            <p className="text-xs uppercase text-muted-foreground">What we do</p>
+            <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+              Everything it takes to build and grow a digital product
+            </h2>
           </div>
-          <ul className="grid gap-8 sm:grid-cols-2">
-            {values.map(({ icon: Icon, title, body }) => (
-              <li key={title} className="flex gap-4">
+          <ul className="grid gap-px border bg-border sm:grid-cols-2">
+            {capabilities.map(({ icon: Icon, title, body }) => (
+              <li key={title} className="flex flex-col gap-3 bg-background p-6">
                 <span className="flex size-10 shrink-0 items-center justify-center border">
                   <Icon className="size-5" aria-hidden />
                 </span>
-                <div className="flex flex-col gap-1">
-                  <h3 className="font-semibold">{title}</h3>
-                  <p className="text-sm text-muted-foreground">{body}</p>
-                </div>
+                <h3 className="font-semibold">{title}</h3>
+                <p className="text-sm text-muted-foreground">{body}</p>
               </li>
             ))}
           </ul>
         </div>
       </section>
 
-      {/* Founder */}
+      {/* Track record */}
       <section className="border-t bg-muted/40">
-        <div className="mx-auto grid w-full max-w-6xl items-center gap-8 px-4 py-16 sm:px-6 md:grid-cols-[auto_1fr] md:gap-12">
-          <div
-            aria-hidden
-            className="flex size-28 items-center justify-center border bg-background text-3xl font-semibold sm:size-36"
-          >
-            JC
-          </div>
-          <div className="flex max-w-2xl flex-col gap-3">
-            <p className="text-xs uppercase text-muted-foreground">Meet the founder</p>
-            <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">Jeff Chung</h2>
-            <p className="text-sm font-medium">Founder, {siteConfig.name}</p>
-            <p className="text-sm leading-relaxed text-muted-foreground sm:text-base">
-              Jeff founded {siteConfig.name} in 2008 and built IntelliReview to solve a problem he
-              faced as a new dad. He has spent the years since turning that same instinct, finding
-              the signal in a sea of noise, into products that save people time and help them choose
-              with confidence.
+        <div className="mx-auto grid w-full max-w-6xl gap-8 px-4 py-16 sm:px-6 md:grid-cols-[1fr_2fr] md:gap-16">
+          <div className="flex flex-col gap-2">
+            <p className="text-xs uppercase text-muted-foreground">Track record</p>
+            <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">IntelliReview</h2>
+            <p className="text-xs font-semibold uppercase text-muted-foreground">2008–2013</p>
+            <p className="text-sm text-muted-foreground">
+              Our first product, and still the clearest example of how we work.
             </p>
           </div>
+          <dl className="flex max-w-2xl flex-col gap-6">
+            {caseStudy.map((item) => (
+              <div key={item.label} className="flex flex-col gap-1 border-l-2 border-primary pl-4">
+                <dt className="text-xs font-semibold uppercase text-muted-foreground">
+                  {item.label}
+                </dt>
+                <dd className="text-sm leading-relaxed sm:text-base">{item.body}</dd>
+              </div>
+            ))}
+          </dl>
         </div>
       </section>
 
-      {/* Call to action */}
+      {/* What we've built: the IntelliReview results */}
       <section className="border-t">
-        <div className="mx-auto flex w-full max-w-6xl flex-col items-start gap-6 px-4 py-16 sm:px-6 md:flex-row md:items-center md:justify-between">
-          <div className="flex max-w-xl flex-col gap-2">
-            <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">The best is still ahead.</h2>
-            <p className="text-sm text-muted-foreground sm:text-base">
-              We&apos;re building our next chapter now. See what&apos;s coming or get in touch.
-            </p>
+        <div className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-4 py-16 sm:px-6">
+          <div className="flex max-w-2xl flex-col gap-2">
+            <p className="text-xs uppercase text-muted-foreground">What we&apos;ve built</p>
+            <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+              See the best, skip the rest.
+            </h2>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Link href="/roadmap" className={buttonVariants({ size: "lg" })}>
-              See our roadmap
-              <ArrowRightIcon data-icon="inline-end" />
-            </Link>
-            <Link href={siteConfig.contactHref} className={buttonVariants({ variant: "outline", size: "lg" })}>
-              Contact us
-            </Link>
-          </div>
+          <ul className="grid gap-px border bg-border sm:grid-cols-3">
+            {results.map((item) => (
+              <li key={item.label} className="flex flex-col gap-2 bg-background p-6">
+                <span className="text-3xl font-semibold tracking-tight">{item.value}</span>
+                <span className="text-xs font-semibold uppercase text-muted-foreground">
+                  {item.label}
+                </span>
+                <p className="text-sm text-muted-foreground">{item.body}</p>
+              </li>
+            ))}
+          </ul>
         </div>
       </section>
     </>

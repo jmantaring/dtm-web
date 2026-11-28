@@ -138,4 +138,11 @@ body {
   html {
     @apply font-mono;
   }
+  /* Smooth in-page anchor jumps (scroll cue, roadmap phase links), unless the
+     visitor asked for reduced motion. */
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
+  }
 }

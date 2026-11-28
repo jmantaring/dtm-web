@@ -22,12 +22,12 @@ Open the local URL that Vite prints (usually http://localhost:5173).
 
 | Command | What it does |
 | --- | --- |
-| `npm run dev` | Starts the dev server with hot reload. |
-| `npm run build` | Builds the Cloudflare Worker output. |
-| `npm run start` | Serves the last build locally. |
-| `npm run preview` | Builds, then serves the Worker locally. Use this to test production before deploying. |
-| `npm run deploy` | Deploys to Cloudflare Workers. |
-| `npm run cf-typegen` | Generates TypeScript types for the Worker bindings. |
+| `npm run dev` | Starts the dev server with hot reload on http://localhost:5173. |
+| `npm run build` | Builds the Cloudflare Worker output into `.cloudflare/output/`. |
+| `npm run start` | Serves the last build locally in the Workers runtime on http://localhost:4173. |
+| `npm run preview` | Runs `build`, then `start`. Use it to test the production build locally. It does not deploy anything. |
+| `npm run deploy` | Builds and deploys your working tree to **production**. Usually you don't run this yourself: merging to `main` does it (see [Deployment](#deployment)). |
+| `npm run cf-typegen` | Generates TypeScript types for the Worker bindings into `.cloudflare/types/` (git-ignored, picked up by `tsconfig.json`). |
 
 ## API (mocked)
 
@@ -38,6 +38,7 @@ Responses are mocked for now: nothing is stored or emailed. Look for `TODO(backe
 | --- | --- | --- | --- |
 | `POST` | `/api/contact` | `{ name, email, subject?, message }` | Contact form (`/contact`) |
 | `POST` | `/api/waitlist` | `{ email }` | Waitlist form (`/`) |
+| `GET` | `/api/hello` | none | Not used by the UI. A sample route that returns a JSON greeting, handy as a quick health check. |
 
 - Success: `201 { data: { ... } }`
 - Error: `{ error: { code, message, fieldErrors? } }`
@@ -68,27 +69,48 @@ curl -i -X POST http://localhost:5173/api/waitlist \
 - `hooks/use-*-mutation.ts`: TanStack Query mutations used by the forms.
 - `lib/query-client.ts` + `components/providers/query-provider.tsx`: the QueryClient, set up as in the [TanStack Advanced SSR guide](https://tanstack.com/query/latest/docs/framework/react/guides/advanced-ssr). React Query Devtools are shown in dev only.
 
-## Deploying to Cloudflare
+## Deployment
 
-The project is already configured for Cloudflare Workers:
+The site runs as the `dtm-web` Cloudflare Worker:
 
 - `vite.config.ts` wires up `vinext` and `@cloudflare/vite-plugin`.
 - `cloudflare.config.ts` defines the Worker name (`dtm-web`), compatibility date/flags and bindings (`ASSETS`, `IMAGES`).
 
-### Deploying to production
+Production URL: https://dtm-web.jeffchung-c0d.workers.dev
 
-Run from `main` only. It deploys your working tree to the production Worker.
+Keep to standard App Router features (Server/Client Components, route handlers, `next/link`, `next/font`) so the app stays Worker-compatible. Avoid Node-only APIs such as `fs` in request code.
+
+### Production: merging to `main` deploys
+
+> [!IMPORTANT]
+> Every push to `main`, including a merged pull request, deploys to production automatically.
+
+The Worker is connected to this GitHub repository through [Workers Builds](https://developers.cloudflare.com/workers/ci-cd/builds/). On each push to `main`, Cloudflare:
+
+1. clones the repo and runs `npm clean-install`
+2. runs `npm run deploy`, which builds the site and promotes the new version to 100% of production traffic
+
+A deploy takes about a minute. To check one, open the Cloudflare dashboard → **Workers & Pages** → **dtm-web** → **Deployments** for the build status and logs. If a build fails, production keeps serving the previous version.
+
+The workflow:
+
+1. Work on `develop` or a feature branch.
+2. Before merging, run `npm run preview` to test the production build locally, or deploy a preview (below).
+3. Merge to `main`. Cloudflare deploys it.
+
+#### Manual production deploy
+
+Only run this for something like a hotfix when CI is unavailable. It deploys your **local working tree**, uncommitted changes included, and the next push to `main` overwrites it.
 
 ```bash
-npm run preview   # optional: test the production build locally first
+npx cf auth login                # once per machine
+npm run deploy -- --dry-run      # optional: check the setup without deploying
 npm run deploy
 ```
 
-The first deploy asks you to sign in to Cloudflare. Keep to standard App Router features (Server/Client Components, route handlers, `next/link`, `next/font`) so the app stays Worker-compatible. Avoid Node-only APIs such as `fs` in request code.
+### Previews
 
-### Deploying a preview
-
-Deploys the current branch as a [Worker Preview](https://developers.cloudflare.com/workers/previews/) with its own URL, without touching production. You need access to the Cloudflare account that owns `dtm-web`.
+A [Worker Preview](https://developers.cloudflare.com/workers/previews/) deploys a branch to its own URL without touching production. You need access to the Cloudflare account that owns `dtm-web`, and you need to be signed in with `npx cf auth login`.
 
 ```bash
 npx vinext-cloudflare previews deploy --preview-name <preview-name>
@@ -113,6 +135,9 @@ To delete a preview:
 npx cf previews delete <preview-name> --worker dtm-web
 ```
 
+> [!WARNING]
+> **Automatic branch previews are currently broken.** Workers Builds also builds pushes to non-`main` branches (such as `develop`), but those builds run `npx wrangler preview`. That command needs a Wrangler config file, which this project doesn't have because it uses `cloudflare.config.ts`, so every branch build fails. This doesn't affect production. Until the non-production deploy command is fixed in the Cloudflare dashboard, deploy previews manually with the command above.
+
 ## Project structure
 
 We follow the Next.js "project files outside of `app`" convention. `app/` only holds routes, and shared code lives in root folders that match the aliases in `components.json`.
@@ -120,6 +145,7 @@ We follow the Next.js "project files outside of `app`" convention. `app/` only h
 ```
 app/
   layout.tsx            Root <html>/<body>, font, ThemeProvider, metadata
+  icon.svg              Favicon
   not-found.tsx         Custom 404 (wrapped in SiteShell, returns a 404 status)
   globals.css           Theme tokens (CSS variables): the single source of colours
   (marketing)/          Route group: shares the header + footer, no effect on URLs
@@ -132,8 +158,12 @@ app/
   api/                  Route handlers (mocked backend, see "API (mocked)")
     contact/route.ts    POST /api/contact
     waitlist/route.ts   POST /api/waitlist
+    hello/route.ts      GET /api/hello (sample route)
+assets/
+  brand/                Logo SVGs (light and dark)
 components/
   ui/                   shadcn/ui components, managed by the CLI (avoid hand-editing)
+  brand/                Logo component
   layout/               Site chrome: SiteShell, header, mobile nav, theme toggle, footer
   legal/                Legal-page helpers (e.g. sticky table of contents)
   marketing/            Components used by marketing pages
